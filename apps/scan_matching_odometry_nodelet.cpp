@@ -39,9 +39,9 @@ public:
 
     initialize_params();
 
-    points_sub = nh.subscribe("/filtered_points", 256, &ScanMatchingOdometryNodelet::cloud_callback, this);
-    read_until_pub = nh.advertise<std_msgs::Header>("/scan_matching_odometry/read_until", 32);
-    odom_pub = nh.advertise<nav_msgs::Odometry>("/odom", 32);
+    points_sub = nh.subscribe("filtered_points", 256, &ScanMatchingOdometryNodelet::cloud_callback, this);
+    read_until_pub = nh.advertise<std_msgs::Header>("scan_matching_odometry/read_until", 32);
+    odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 32);
   }
 
 private:
@@ -50,7 +50,7 @@ private:
    */
   void initialize_params() {
     auto& pnh = private_nh;
-    points_topic = pnh.param<std::string>("points_topic", "/velodyne_points");
+    points_topic = pnh.param<std::string>("points_topic", "velodyne_points");
     odom_frame_id = pnh.param<std::string>("odom_frame_id", "odom");
 
     // The minimum tranlational distance and rotation angle between keyframes.
@@ -111,7 +111,7 @@ private:
     read_until->stamp = cloud_msg->header.stamp + ros::Duration(1, 0);
     read_until_pub.publish(read_until);
 
-    read_until->frame_id = "/filtered_points";
+    read_until->frame_id = "filtered_points";
     read_until_pub.publish(read_until);
 
   }

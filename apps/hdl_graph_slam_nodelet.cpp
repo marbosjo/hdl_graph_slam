@@ -100,30 +100,30 @@ public:
     imu_orientation_edge_stddev = private_nh.param<double>("imu_orientation_edge_stddev", 0.1);
     imu_acceleration_edge_stddev = private_nh.param<double>("imu_acceleration_edge_stddev", 3.0);
 
-    points_topic = private_nh.param<std::string>("points_topic", "/velodyne_poits");
+    points_topic = private_nh.param<std::string>("points_topic", "velodyne_poits");
 
     // subscribers
-    odom_sub.reset(new message_filters::Subscriber<nav_msgs::Odometry>(mt_nh, "/odom", 256));
-    cloud_sub.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(mt_nh, "/filtered_points", 32));
+    odom_sub.reset(new message_filters::Subscriber<nav_msgs::Odometry>(mt_nh, "odom", 256));
+    cloud_sub.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(mt_nh, "filtered_points", 32));
     sync.reset(new message_filters::TimeSynchronizer<nav_msgs::Odometry, sensor_msgs::PointCloud2>(*odom_sub, *cloud_sub, 32));
     sync->registerCallback(boost::bind(&HdlGraphSlamNodelet::cloud_callback, this, _1, _2));
-    imu_sub = nh.subscribe("/gpsimu_driver/imu_data", 1024, &HdlGraphSlamNodelet::imu_callback, this);
-    floor_sub = nh.subscribe("/floor_detection/floor_coeffs", 1024, &HdlGraphSlamNodelet::floor_coeffs_callback, this);
+    imu_sub = nh.subscribe("gpsimu_driver/imu_data", 1024, &HdlGraphSlamNodelet::imu_callback, this);
+    floor_sub = nh.subscribe("floor_detection/floor_coeffs", 1024, &HdlGraphSlamNodelet::floor_coeffs_callback, this);
 
     if(private_nh.param<bool>("enable_gps", true)) {
-      gps_sub = mt_nh.subscribe("/gps/geopoint", 1024, &HdlGraphSlamNodelet::gps_callback, this);
-      nmea_sub = mt_nh.subscribe("/gpsimu_driver/nmea_sentence", 1024, &HdlGraphSlamNodelet::nmea_callback, this);
-      navsat_sub = mt_nh.subscribe("/gps/navsat", 1024, &HdlGraphSlamNodelet::navsat_callback, this);
+      gps_sub = mt_nh.subscribe("gps/geopoint", 1024, &HdlGraphSlamNodelet::gps_callback, this);
+      nmea_sub = mt_nh.subscribe("gpsimu_driver/nmea_sentence", 1024, &HdlGraphSlamNodelet::nmea_callback, this);
+      navsat_sub = mt_nh.subscribe("gps/navsat", 1024, &HdlGraphSlamNodelet::navsat_callback, this);
     }
 
     // publishers
-    markers_pub = mt_nh.advertise<visualization_msgs::MarkerArray>("/hdl_graph_slam/markers", 16);
-    odom2map_pub = mt_nh.advertise<geometry_msgs::TransformStamped>("/hdl_graph_slam/odom2pub", 16);
-    map_points_pub = mt_nh.advertise<sensor_msgs::PointCloud2>("/hdl_graph_slam/map_points", 1);
-    read_until_pub = mt_nh.advertise<std_msgs::Header>("/hdl_graph_slam/read_until", 32);
+    markers_pub = mt_nh.advertise<visualization_msgs::MarkerArray>("hdl_graph_slam/markers", 16);
+    odom2map_pub = mt_nh.advertise<geometry_msgs::TransformStamped>("hdl_graph_slam/odom2pub", 16);
+    map_points_pub = mt_nh.advertise<sensor_msgs::PointCloud2>("hdl_graph_slam/map_points", 1);
+    read_until_pub = mt_nh.advertise<std_msgs::Header>("hdl_graph_slam/read_until", 32);
 
-    dump_service_server = mt_nh.advertiseService("/hdl_graph_slam/dump", &HdlGraphSlamNodelet::dump_service, this);
-    save_map_service_server = mt_nh.advertiseService("/hdl_graph_slam/save_map", &HdlGraphSlamNodelet::save_map_service, this);
+    dump_service_server = mt_nh.advertiseService("hdl_graph_slam/dump", &HdlGraphSlamNodelet::dump_service, this);
+    save_map_service_server = mt_nh.advertiseService("hdl_graph_slam/save_map", &HdlGraphSlamNodelet::save_map_service, this);
 
     double graph_update_interval = private_nh.param<double>("graph_update_interval", 3.0);
     double map_cloud_update_interval = private_nh.param<double>("map_cloud_update_interval", 10.0);
@@ -154,7 +154,7 @@ private:
         read_until.stamp = stamp + ros::Duration(10, 0);
         read_until.frame_id = points_topic;
         read_until_pub.publish(read_until);
-        read_until.frame_id = "/filtered_points";
+        read_until.frame_id = "filtered_points";
         read_until_pub.publish(read_until);
       }
 
@@ -222,7 +222,7 @@ private:
     read_until.stamp = keyframe_queue[num_processed]->stamp + ros::Duration(10, 0);
     read_until.frame_id = points_topic;
     read_until_pub.publish(read_until);
-    read_until.frame_id = "/filtered_points";
+    read_until.frame_id = "filtered_points";
     read_until_pub.publish(read_until);
 
     keyframe_queue.erase(keyframe_queue.begin(), keyframe_queue.begin() + num_processed + 1);
@@ -548,7 +548,7 @@ private:
       read_until.stamp = ros::Time::now() + ros::Duration(30, 0);
       read_until.frame_id = points_topic;
       read_until_pub.publish(read_until);
-      read_until.frame_id = "/filtered_points";
+      read_until.frame_id = "filtered_points";
       read_until_pub.publish(read_until);
     }
 

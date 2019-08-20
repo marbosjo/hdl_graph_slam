@@ -37,12 +37,12 @@ public:
 
     initialize_params();
 
-    points_sub = nh.subscribe("/filtered_points", 256, &FloorDetectionNodelet::cloud_callback, this);
-    floor_pub = nh.advertise<hdl_graph_slam::FloorCoeffs>("/floor_detection/floor_coeffs", 32);
+    points_sub = nh.subscribe("filtered_points", 256, &FloorDetectionNodelet::cloud_callback, this);
+    floor_pub = nh.advertise<hdl_graph_slam::FloorCoeffs>("floor_detection/floor_coeffs", 32);
 
-    read_until_pub = nh.advertise<std_msgs::Header>("/floor_detection/read_until", 32);
-    floor_filtered_pub = nh.advertise<sensor_msgs::PointCloud2>("/floor_detection/floor_filtered_points", 32);
-    floor_points_pub = nh.advertise<sensor_msgs::PointCloud2>("/floor_detection/floor_points", 32);
+    read_until_pub = nh.advertise<std_msgs::Header>("floor_detection/read_until", 32);
+    floor_filtered_pub = nh.advertise<sensor_msgs::PointCloud2>("floor_detection/floor_filtered_points", 32);
+    floor_points_pub = nh.advertise<sensor_msgs::PointCloud2>("floor_detection/floor_points", 32);
   }
 
 
@@ -59,7 +59,7 @@ private:
     use_normal_filtering = private_nh.param<bool>("use_normal_filtering", true);   // if true, points with "non-"vertical normals will be filtered before RANSAC
     normal_filter_thresh = private_nh.param<double>("normal_filter_thresh", 20.0); // "non-"verticality check threshold [deg]
 
-    points_topic = private_nh.param<std::string>("points_topic", "/velodyne_points");
+    points_topic = private_nh.param<std::string>("points_topic", "velodyne_points");
   }
 
   /**
@@ -95,7 +95,7 @@ private:
     read_until->stamp = cloud_msg->header.stamp + ros::Duration(1, 0);
     read_until_pub.publish(read_until);
 
-    read_until->frame_id = "/filtered_points";
+    read_until->frame_id = "filtered_points";
     read_until_pub.publish(read_until);
   }
 
