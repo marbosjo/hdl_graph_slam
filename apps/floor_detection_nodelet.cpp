@@ -59,7 +59,7 @@ private:
     use_normal_filtering = private_nh.param<bool>("use_normal_filtering", true);   // if true, points with "non-"vertical normals will be filtered before RANSAC
     normal_filter_thresh = private_nh.param<double>("normal_filter_thresh", 20.0); // "non-"verticality check threshold [deg]
 
-    points_topic = private_nh.param<std::string>("points_topic", "velodyne_points");
+    points_topic = private_nh.param<std::string>("points_topic", "points");
   }
 
   /**

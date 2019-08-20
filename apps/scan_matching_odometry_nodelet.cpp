@@ -50,7 +50,7 @@ private:
    */
   void initialize_params() {
     auto& pnh = private_nh;
-    points_topic = pnh.param<std::string>("points_topic", "velodyne_points");
+    points_topic = pnh.param<std::string>("points_topic", "points");
     odom_frame_id = pnh.param<std::string>("odom_frame_id", "odom");
 
     // The minimum tranlational distance and rotation angle between keyframes.
