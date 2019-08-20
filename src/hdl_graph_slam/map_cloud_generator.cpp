@@ -12,6 +12,11 @@ MapCloudGenerator::~MapCloudGenerator() {
 }
 
 pcl::PointCloud<MapCloudGenerator::PointT>::Ptr MapCloudGenerator::generate(const std::vector<KeyFrameSnapshot::Ptr>& keyframes, double resolution) const {
+  if (resolution == 0) {
+    std::cerr << "warning: resolution is 0, should be a bigger value (e.g. 0.05, in meters)!!" << std::endl;
+    return nullptr;
+  }
+
   if(keyframes.empty()) {
     std::cerr << "warning: keyframes empty!!" << std::endl;
     return nullptr;
