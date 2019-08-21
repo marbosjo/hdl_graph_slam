@@ -84,7 +84,7 @@ private:
     distance_near_thresh = private_nh.param<double>("distance_near_thresh", 1.0);
     distance_far_thresh = private_nh.param<double>("distance_far_thresh", 100.0);
 
-    base_link_frame = private_nh.param<std::string>("base_link_frame", "");
+    base_frame_id = private_nh.param<std::string>("base_frame_id", "");
   }
 
   void cloud_callback(pcl::PointCloud<PointT>::ConstPtr src_cloud) {
@@ -92,19 +92,20 @@ private:
       return;
     }
 
-    // if base_link_frame is defined, transform the input cloud to the frame
-    if(!base_link_frame.empty()) {
-      if(!tf_listener.canTransform(base_link_frame, src_cloud->header.frame_id, ros::Time(0))) {
-        std::cerr << "failed to find transform between " << base_link_frame << " and " << src_cloud->header.frame_id << std::endl;
+    // if base_frame_id is defined, transform the input cloud to the frame
+    if(!base_frame_id.empty()) {
+      if(!tf_listener.canTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0))) {
+        std::cerr << "failed to find transform between " << base_frame_id << " and " << src_cloud->header.frame_id << std::endl;
+        return;
       }
 
       tf::StampedTransform transform;
-      tf_listener.waitForTransform(base_link_frame, src_cloud->header.frame_id, ros::Time(0), ros::Duration(2.0));
-      tf_listener.lookupTransform(base_link_frame, src_cloud->header.frame_id, ros::Time(0), transform);
+      tf_listener.waitForTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0), ros::Duration(2.0));
+      tf_listener.lookupTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0), transform);
 
       pcl::PointCloud<PointT>::Ptr transformed(new pcl::PointCloud<PointT>());
       pcl_ros::transformPointCloud(*src_cloud, *transformed, transform);
-      transformed->header.frame_id = base_link_frame;
+      transformed->header.frame_id = base_frame_id;
       transformed->header.stamp = src_cloud->header.stamp;
       src_cloud = transformed;
     }
@@ -171,7 +172,7 @@ private:
 
   tf::TransformListener tf_listener;
 
-  std::string base_link_frame;
+  std::string base_frame_id;
 
   bool use_distance_filter;
   double distance_near_thresh;

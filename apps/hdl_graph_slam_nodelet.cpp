@@ -73,6 +73,7 @@ public:
     // init parameters
     map_frame_id = private_nh.param<std::string>("map_frame_id", "map");
     odom_frame_id = private_nh.param<std::string>("odom_frame_id", "odom");
+    base_frame_id = private_nh.param<std::string>("base_frame_id", "base_link");
     map_cloud_resolution = private_nh.param<double>("map_cloud_resolution", 0.05);
     trans_odom2map.setIdentity();
 
@@ -107,12 +108,12 @@ public:
     cloud_sub.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(mt_nh, "filtered_points", 32));
     sync.reset(new message_filters::TimeSynchronizer<nav_msgs::Odometry, sensor_msgs::PointCloud2>(*odom_sub, *cloud_sub, 32));
     sync->registerCallback(boost::bind(&HdlGraphSlamNodelet::cloud_callback, this, _1, _2));
-    imu_sub = nh.subscribe("gpsimu_driver/imu_data", 1024, &HdlGraphSlamNodelet::imu_callback, this);
+    imu_sub = nh.subscribe("imu/data", 1024, &HdlGraphSlamNodelet::imu_callback, this);
     floor_sub = nh.subscribe("floor_detection/floor_coeffs", 1024, &HdlGraphSlamNodelet::floor_coeffs_callback, this);
 
     if(private_nh.param<bool>("enable_gps", true)) {
       gps_sub = mt_nh.subscribe("gps/geopoint", 1024, &HdlGraphSlamNodelet::gps_callback, this);
-      nmea_sub = mt_nh.subscribe("gpsimu_driver/nmea_sentence", 1024, &HdlGraphSlamNodelet::nmea_callback, this);
+      nmea_sub = mt_nh.subscribe("gps/nmea_sentence", 1024, &HdlGraphSlamNodelet::nmea_callback, this);
       navsat_sub = mt_nh.subscribe("gps/navsat", 1024, &HdlGraphSlamNodelet::navsat_callback, this);
     }
 
@@ -611,7 +612,7 @@ private:
 
     // node markers
     visualization_msgs::Marker& traj_marker = markers.markers[0];
-    traj_marker.header.frame_id = "map";
+    traj_marker.header.frame_id = map_frame_id;
     traj_marker.header.stamp = stamp;
     traj_marker.ns = "nodes";
     traj_marker.id = 0;
@@ -663,7 +664,7 @@ private:
 
     // edge markers
     visualization_msgs::Marker& edge_marker = markers.markers[1];
-    edge_marker.header.frame_id = "map";
+    edge_marker.header.frame_id = map_frame_id;
     edge_marker.header.stamp = stamp;
     edge_marker.ns = "edges";
     edge_marker.id = 1;
@@ -776,7 +777,7 @@ private:
 
     // sphere
     visualization_msgs::Marker& sphere_marker = markers.markers[3];
-    sphere_marker.header.frame_id = "map";
+    sphere_marker.header.frame_id = map_frame_id;
     sphere_marker.header.stamp = stamp;
     sphere_marker.ns = "loop_close_radius";
     sphere_marker.id = 0;

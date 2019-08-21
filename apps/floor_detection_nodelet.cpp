@@ -60,6 +60,7 @@ private:
     normal_filter_thresh = private_nh.param<double>("normal_filter_thresh", 20.0); // "non-"verticality check threshold [deg]
 
     points_topic = private_nh.param<std::string>("points_topic", "points");
+    base_frame_id = private_nh.param<std::string>("base_frame_id", "base_link");
   }
 
   /**
@@ -248,6 +249,8 @@ private:
 
   std::string points_topic;
   ros::Publisher read_until_pub;
+
+  std::string base_frame_id;
 
   // floor detection parameters
   // see initialize_params() for the details
