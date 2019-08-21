@@ -4,9 +4,11 @@
 #include <ros/ros.h>
 #include <ros/time.h>
 #include <ros/duration.h>
+#include <pcl_ros/transforms.h>
 #include <pcl_ros/point_cloud.h>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 
 #include <std_msgs/Time.h>
 #include <nav_msgs/Odometry.h>
@@ -102,6 +104,13 @@ private:
 
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
     pcl::fromROSMsg(*cloud_msg, *cloud);
+    
+    
+    if(!base_frame_id.empty()) {
+      bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
+      if (transformed == false)
+        return;
+    }
 
     Eigen::Matrix4f pose = matching(cloud_msg->header.stamp, cloud);
     publish_odometry(cloud_msg->header.stamp, base_frame_id, pose);
@@ -236,6 +245,7 @@ private:
   ros::Publisher odom_pub;
   tf::TransformBroadcaster odom_broadcaster;
   tf::TransformBroadcaster keyframe_broadcaster;
+  tf::TransformListener tf_listener;
 
   std::string points_topic;
   std::string odom_frame_id;

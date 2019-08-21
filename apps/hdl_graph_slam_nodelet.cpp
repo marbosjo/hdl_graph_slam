@@ -15,6 +15,7 @@
 #include <geodesy/utm.h>
 #include <geodesy/wgs84.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <tf_conversions/tf_eigen.h>
@@ -144,8 +145,11 @@ private:
 
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
     pcl::fromROSMsg(*cloud_msg, *cloud);
-    if(base_frame_id.empty()) {
-      base_frame_id = cloud_msg->header.frame_id;
+
+    if(!base_frame_id.empty()) {
+      bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
+      if (transformed == false)
+        return;
     }
 
     if(!keyframe_updater->update(odom)) {

@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <ros/time.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 
 #include <std_msgs/Time.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -73,6 +74,12 @@ private:
 
     if(cloud->empty()) {
       return;
+    }
+
+    if(!base_frame_id.empty()) {
+      bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
+      if (transformed == false)
+        return;
     }
 
     // floor detection
@@ -251,6 +258,8 @@ private:
   ros::Publisher read_until_pub;
 
   std::string base_frame_id;
+
+  tf::TransformListener tf_listener;
 
   // floor detection parameters
   // see initialize_params() for the details

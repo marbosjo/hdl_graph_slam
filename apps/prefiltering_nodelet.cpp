@@ -92,25 +92,17 @@ private:
       return;
     }
 
+    pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
+    *cloud = *src_cloud;
+
     // if base_frame_id is defined, transform the input cloud to the frame
     if(!base_frame_id.empty()) {
-      if(!tf_listener.canTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0))) {
-        std::cerr << "failed to find transform between " << base_frame_id << " and " << src_cloud->header.frame_id << std::endl;
+      bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
+      if (transformed == false)
         return;
-      }
-
-      tf::StampedTransform transform;
-      tf_listener.waitForTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0), ros::Duration(2.0));
-      tf_listener.lookupTransform(base_frame_id, src_cloud->header.frame_id, ros::Time(0), transform);
-
-      pcl::PointCloud<PointT>::Ptr transformed(new pcl::PointCloud<PointT>());
-      pcl_ros::transformPointCloud(*src_cloud, *transformed, transform);
-      transformed->header.frame_id = base_frame_id;
-      transformed->header.stamp = src_cloud->header.stamp;
-      src_cloud = transformed;
     }
 
-    pcl::PointCloud<PointT>::ConstPtr filtered = distance_filter(src_cloud);
+    pcl::PointCloud<PointT>::ConstPtr filtered = distance_filter(cloud);
     filtered = downsample(filtered);
     filtered = outlier_removal(filtered);
 
