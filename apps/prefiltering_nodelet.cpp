@@ -2,6 +2,7 @@
 #include <ros/time.h>
 #include <pcl_ros/transforms.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <tf/transform_listener.h>
 #include <sensor_msgs/PointCloud2.h>
 
@@ -97,9 +98,14 @@ private:
 
     // if base_frame_id is defined, transform the input cloud to the frame
     if(!base_frame_id.empty()) {
+      tf_listener.waitForTransform(base_frame_id, cloud->header.frame_id, pcl_conversions::fromPCL(cloud->header).stamp, ros::Duration(1.0));
+
       bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
       if (transformed == false)
+      {
+        NODELET_WARN_STREAM("Cannot transform cloud from frame " << cloud->header.frame_id << " into " << base_frame_id);
         return;
+      }
     }
 
     pcl::PointCloud<PointT>::ConstPtr filtered = distance_filter(cloud);

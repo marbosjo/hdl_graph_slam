@@ -5,6 +5,7 @@
 #include <ros/time.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <std_msgs/Time.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -38,7 +39,7 @@ public:
 
     initialize_params();
 
-    points_sub = nh.subscribe("filtered_points", 256, &FloorDetectionNodelet::cloud_callback, this);
+    points_sub = nh.subscribe("points", 256, &FloorDetectionNodelet::cloud_callback, this);
     floor_pub = nh.advertise<hdl_graph_slam::FloorCoeffs>("floor_detection/floor_coeffs", 32);
 
     read_until_pub = nh.advertise<std_msgs::Header>("floor_detection/read_until", 32);
@@ -72,15 +73,28 @@ private:
     pcl::PointCloud<PointT>::Ptr cloud(new pcl::PointCloud<PointT>());
     pcl::fromROSMsg(*cloud_msg, *cloud);
 
+    // NODELET_INFO_STREAM("Cloud callback NO");
+    // ROS_INFO_STREAM("Cloud callback");
     if(cloud->empty()) {
       return;
     }
+    
+    // NODELET_INFO_STREAM("not empty no");
+    // ROS_INFO_STREAM("not emp");
 
     if(!base_frame_id.empty()) {
+      tf_listener.waitForTransform(base_frame_id, cloud->header.frame_id, pcl_conversions::fromPCL(cloud->header).stamp, ros::Duration(1.0));
+
       bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
       if (transformed == false)
+      {
+        NODELET_WARN_STREAM("Cannot transform cloud from frame " << cloud->header.frame_id << " into " << base_frame_id);
         return;
+      }
     }
+
+    // NODELET_INFO_STREAM("transformed no");
+    // ROS_INFO_STREAM("transfo");
 
     // floor detection
     boost::optional<Eigen::Vector4f> floor = detect(cloud);
@@ -103,7 +117,7 @@ private:
     read_until->stamp = cloud_msg->header.stamp + ros::Duration(1, 0);
     read_until_pub.publish(read_until);
 
-    read_until->frame_id = "filtered_points";
+    read_until->frame_id = "points";
     read_until_pub.publish(read_until);
   }
 
@@ -113,6 +127,8 @@ private:
    * @return detected floor plane coefficients
    */
   boost::optional<Eigen::Vector4f> detect(const pcl::PointCloud<PointT>::Ptr& cloud) const {
+    // NODELET_INFO_STREAM("Im detecting!");
+    // ROS_INFO_STREAM("Im detecting!");
     // compensate the tilt rotation
     Eigen::Matrix4f tilt_matrix = Eigen::Matrix4f::Identity();
     tilt_matrix.topLeftCorner(3, 3) = Eigen::AngleAxisf(tilt_deg * M_PI / 180.0f, Eigen::Vector3f::UnitY()).toRotationMatrix();

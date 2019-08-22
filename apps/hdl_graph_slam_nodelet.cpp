@@ -16,6 +16,7 @@
 #include <geodesy/wgs84.h>
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/time_synchronizer.h>
 #include <tf_conversions/tf_eigen.h>
@@ -106,7 +107,7 @@ public:
 
     // subscribers
     odom_sub.reset(new message_filters::Subscriber<nav_msgs::Odometry>(mt_nh, "odom", 256));
-    cloud_sub.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(mt_nh, "filtered_points", 32));
+    cloud_sub.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(mt_nh, "points", 32));
     sync.reset(new message_filters::TimeSynchronizer<nav_msgs::Odometry, sensor_msgs::PointCloud2>(*odom_sub, *cloud_sub, 32));
     sync->registerCallback(boost::bind(&HdlGraphSlamNodelet::cloud_callback, this, _1, _2));
     imu_sub = nh.subscribe("imu/data", 1024, &HdlGraphSlamNodelet::imu_callback, this);
@@ -147,9 +148,14 @@ private:
     pcl::fromROSMsg(*cloud_msg, *cloud);
 
     if(!base_frame_id.empty()) {
+      tf_listener.waitForTransform(base_frame_id, cloud->header.frame_id, pcl_conversions::fromPCL(cloud->header).stamp, ros::Duration(1.0));
+      
       bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
       if (transformed == false)
+      {
+        NODELET_WARN_STREAM("Cannot transform cloud from frame " << cloud->header.frame_id << " into " << base_frame_id);
         return;
+      }
     }
 
     if(!keyframe_updater->update(odom)) {
@@ -159,7 +165,7 @@ private:
         read_until.stamp = stamp + ros::Duration(10, 0);
         read_until.frame_id = points_topic;
         read_until_pub.publish(read_until);
-        read_until.frame_id = "filtered_points";
+        read_until.frame_id = "points";
         read_until_pub.publish(read_until);
       }
 
@@ -227,7 +233,7 @@ private:
     read_until.stamp = keyframe_queue[num_processed]->stamp + ros::Duration(10, 0);
     read_until.frame_id = points_topic;
     read_until_pub.publish(read_until);
-    read_until.frame_id = "filtered_points";
+    read_until.frame_id = "points";
     read_until_pub.publish(read_until);
 
     keyframe_queue.erase(keyframe_queue.begin(), keyframe_queue.begin() + num_processed + 1);
@@ -553,7 +559,7 @@ private:
       read_until.stamp = ros::Time::now() + ros::Duration(30, 0);
       read_until.frame_id = points_topic;
       read_until_pub.publish(read_until);
-      read_until.frame_id = "filtered_points";
+      read_until.frame_id = "points";
       read_until_pub.publish(read_until);
     }
 

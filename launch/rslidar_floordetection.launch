@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- arguments -->
+  <arg name="nodelet_manager" default="nodelet_manager" />
+  <arg name="enable_floor_detection" default="true" />
+  <arg name="enable_gps" default="false" />
+  <arg name="enable_imu_acc" default="false" />
+  <arg name="enable_imu_ori" default="false" />
+  <arg name="points_topic" default="rslidar_points" />
+  <arg name="points_filtered_topic" default="rslidar_filtered_points" />
+  <arg name="base_frame_id" default="rbkairos_a_base_link" />
+
+  <!-- in case you use velodyne_driver, comment out the following line -->
+  <node pkg="nodelet" type="nodelet" name="$(arg nodelet_manager)" args="manager" output="screen"/>
+
+  <!-- prefiltering_nodelet -->
+  <node pkg="nodelet" type="nodelet" name="prefiltering_nodelet" args="load hdl_graph_slam/PrefilteringNodelet $(arg nodelet_manager)">
+    <remap from="points" to="$(arg points_topic)" />
+    <remap from="filtered_points" to="$(arg points_filtered_topic)" />
+    <!-- in case base_frame_id is blank, mapping will be performed in the lidar frame -->
+    <param name="base_frame_id" value="$(arg base_frame_id)" />
+    <!-- distance filter -->
+    <param name="use_distance_filter" value="true" />
+    <param name="distance_near_thresh" value="0.5" />
+    <param name="distance_far_thresh" value="100.0" />
+    <!-- NONE, VOXELGRID, or APPROX_VOXELGRID -->
+    <param name="downsample_method" value="VOXELGRID" />
+    <param name="downsample_resolution" value="0.1" />
+    <!-- NONE, RADIUS, or STATISTICAL -->
+    <param name="outlier_removal_method" value="RADIUS" />
+    <param name="statistical_mean_k" value="30" />
+    <param name="statistical_stddev" value="1.2" />
+    <param name="radius_radius" value="0.5" />
+    <param name="radius_min_neighbors" value="2" />
+  </node>
+
+  <!-- floor_detection_nodelet -->
+  <node pkg="nodelet" type="nodelet" name="floor_detection_nodelet" args="load hdl_graph_slam/FloorDetectionNodelet $(arg nodelet_manager)" if="$(arg enable_floor_detection)">
+    <!-- this node subbscribes to a hardcoded topic /filtered_points, which is the output from the one above -->
+    <!-- so no need the points topic parameter" -->
+    <remap from="points" to="$(arg points_filtered_topic)" />
+    <param name="base_frame_id" value="$(arg base_frame_id)" />
+    <param name="tilt_deg" value="0.0" />
+    <param name="sensor_height" value="0.7" />
+    <param name="height_clip_range" value="0.5" />
+    <param name="floor_pts_thresh" value="256" />
+    <param name="use_normal_filtering" value="true" />
+    <param name="normal_filter_thresh" value="20.0" />
+  </node>
+
+</launch>

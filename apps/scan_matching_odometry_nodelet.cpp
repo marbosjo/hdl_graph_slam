@@ -6,6 +6,7 @@
 #include <ros/duration.h>
 #include <pcl_ros/transforms.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <tf_conversions/tf_eigen.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
@@ -41,7 +42,7 @@ public:
 
     initialize_params();
 
-    points_sub = nh.subscribe("filtered_points", 256, &ScanMatchingOdometryNodelet::cloud_callback, this);
+    points_sub = nh.subscribe("points", 256, &ScanMatchingOdometryNodelet::cloud_callback, this);
     read_until_pub = nh.advertise<std_msgs::Header>("scan_matching_odometry/read_until", 32);
     odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 32);
   }
@@ -55,6 +56,7 @@ private:
     points_topic = pnh.param<std::string>("points_topic", "points");
     odom_frame_id = pnh.param<std::string>("odom_frame_id", "odom");
     base_frame_id = pnh.param<std::string>("base_frame_id", "base_link");
+    alternate_base_frame_id = pnh.param<std::string>("alternate_base_frame_id", base_frame_id);
 
     // The minimum tranlational distance and rotation angle between keyframes.
     // If this value is zero, frames are always compared with the previous frame
@@ -107,9 +109,14 @@ private:
     
     
     if(!base_frame_id.empty()) {
+      tf_listener.waitForTransform(base_frame_id, cloud->header.frame_id, pcl_conversions::fromPCL(cloud->header).stamp, ros::Duration(1.0));
+      
       bool transformed = pcl_ros::transformPointCloud(base_frame_id, *cloud, *cloud, tf_listener);
       if (transformed == false)
+      {
+        NODELET_WARN_STREAM("Cannot transform cloud from frame " << cloud->header.frame_id << " into " << base_frame_id);
         return;
+      }
     }
 
     Eigen::Matrix4f pose = matching(cloud_msg->header.stamp, cloud);
@@ -121,7 +128,7 @@ private:
     read_until->stamp = cloud_msg->header.stamp + ros::Duration(1, 0);
     read_until_pub.publish(read_until);
 
-    read_until->frame_id = "filtered_points";
+    read_until->frame_id = "points";
     read_until_pub.publish(read_until);
 
   }
@@ -213,7 +220,7 @@ private:
    */
   void publish_odometry(const ros::Time& stamp, const std::string& base_frame_id, const Eigen::Matrix4f& pose) {
     // broadcast the transform over tf
-    geometry_msgs::TransformStamped odom_trans = matrix2transform(stamp, pose, odom_frame_id, base_frame_id);
+    geometry_msgs::TransformStamped odom_trans = matrix2transform(stamp, pose, odom_frame_id, alternate_base_frame_id);
     odom_broadcaster.sendTransform(odom_trans);
 
     // publish the transform
@@ -226,7 +233,7 @@ private:
     odom.pose.pose.position.z = pose(2, 3);
     odom.pose.pose.orientation = odom_trans.transform.rotation;
 
-    odom.child_frame_id = base_frame_id;
+    odom.child_frame_id = alternate_base_frame_id;
     odom.twist.twist.linear.x = 0.0;
     odom.twist.twist.linear.y = 0.0;
     odom.twist.twist.angular.z = 0.0;
@@ -250,6 +257,7 @@ private:
   std::string points_topic;
   std::string odom_frame_id;
   std::string base_frame_id;
+  std::string alternate_base_frame_id;
   ros::Publisher read_until_pub;
 
   // keyframe parameters
